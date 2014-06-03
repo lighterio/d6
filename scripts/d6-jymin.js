@@ -35,7 +35,8 @@
     // When a same-domain link is clicked, fetch it via AJAX.
     on(body, 'a', 'click', function (a, event) {
       var url = a.href;
-      if (isSameDomain(url)) {
+      var which = event.which;
+      if (isSameDomain(url) && (!which || which == 1)) {
         //+env:dev
         log('Loading URL: "' + url + '"');
         //-env:dev
