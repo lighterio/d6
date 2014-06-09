@@ -5,12 +5,6 @@
  * Otherwise use ../d6-client.js which includes required Jymin functions.
  */
 
-var d6Load = function (url) {
-  if (window.d6) {
-    d6._LOAD(url);
-  }
-};
-
 (function () {
 
   /**
@@ -43,9 +37,9 @@ var d6Load = function (url) {
       var url = a.href;
       var which = event.which;
       if (isSameDomain(url) && (!which || which == 1)) {
-        //+env:dev
+        //+env:debug
         log('Loading URL: "' + url + '"');
-        //-env:dev
+        //-env:debug
         preventDefault(event);
         pushHistory(url);
         loadUrl(url, renderResponse);
@@ -78,27 +72,22 @@ var d6Load = function (url) {
   };
 
   var prefetchUrl = function (url) {
+    // Only proceed if it's not already prefetched.
     if (!cache[url]) {
-      // Create a callback queue.
-      var callbacks = cache[url] = [];
-      getD6Json(url, function (response) {
-        // If callbacks were registered, use it and remove it.
-        if (getLength(callbacks)) {
-          forEach(callbacks, function (callback) {
-            callback(response);
-          });
-          delete cache[url];
-        }
-        // Otherwise, wait up to its TTL for it to be loaded.
-        else {
-          cache[url] = response;
-          // By default, give the user 10 seconds to click.
-          var ttl = response.ttl || 1e4;
-          setTimeout(function () {
+      // Create a callback queue to execute when data arrives.
+      cache[url] = [function (response) {
+        // Cache the response so data can be used without a queue.
+        cache[url] = response;
+        // Remove the data after 10 seconds, or the given TTL.
+        var ttl = response.ttl || 1e4;
+        setTimeout(function () {
+          // Only delete if it's not a new callback queue.
+          if (!isArray(cache[url])) {
             delete cache[url];
-          }, ttl);
-        }
-      });
+          }
+        }, ttl);
+      }];
+      getD6Json(url);
     }
   };
 
@@ -117,7 +106,8 @@ var d6Load = function (url) {
 
     // If there's no resource, start the JSON request.
     if (!resource) {
-      getD6Json(url, callback);
+      cache[url] = [callback];
+      getD6Json(url);
     }
     // If the "resource" is a callback queue, then pushing means listening.
     else if (isArray(resource)) {
@@ -130,10 +120,25 @@ var d6Load = function (url) {
     }
   };
 
-  // Request JSON, indicating with a URL param that D6 is requesting it.
-  var getD6Json = function (url, callback) {
-    url += (contains(url, '?') ? '&' : '?') + 'd6=on';
-    getJson(url, callback);
+  /**
+   * Request JSON, then execute any callbacks that have been waiting for it.
+   */
+  var getD6Json = function (url, data) {
+
+    // Indicate with a URL param that D6 is requesting data, so we'll get JSON.
+    var d6Url = url + (contains(url, '?') ? '&' : '?') + 'd6=on';
+
+    // When data is received, execute all callbacks that have been waiting.
+    var onComplete = function (response) {
+      forEach(cache[url], function (callback) {
+        callback(response);
+      });
+      // Once everything's been executed, remove the queue.
+      delete cache[url];
+    };
+
+    // Fire the JSON request.
+    getResponse(d6Url, data, onComplete, onComplete, 1);
   };
 
   // Render a template with the given context, and display the resulting HTML.
