@@ -15,3 +15,5 @@ logs
 results
 coverage
 node_modules
+
+build

@@ -19,7 +19,7 @@
 
   var views = d6._VIEWS = {};
 
-  var cache = {};
+  var cache = d6._CACHE = {};
 
   var isReady = false;
 
@@ -34,12 +34,10 @@
 
     // When a same-domain link is clicked, fetch it via AJAX.
     on(body, 'a', 'click', function (a, event) {
-      var url = a.href;
-      var which = event.which;
-      if (isSameDomain(url) && (!which || which == 1)) {
-        //+env:debug
-        log('Loading URL: "' + url + '"');
-        //-env:debug
+      var url = removeHash(a.href);
+      var buttonNumber = event.which;
+      var isLeftClick = (!buttonNumber || (buttonNumber == 1));
+      if (isSameDomain(url) && isLeftClick) {
         preventDefault(event);
         pushHistory(url);
         loadUrl(url, renderResponse);
@@ -50,8 +48,9 @@
     // TODO: Use mouse movement to detect probably targets.
     on(body, 'a', 'mouseover', function (a, event) {
       if (!hasClass(a, '_NOPREFETCH')) {
-        var url = a.href;
-        if (isSameDomain(url)) {
+        var url = removeHash(a.href);
+        var isDifferentPage = (url != removeHash(location));
+        if (isDifferentPage && isSameDomain(url)) {
           prefetchUrl(url);
         }
       }
@@ -69,6 +68,10 @@
 
   var isSameDomain = function (url) {
     return startsWith(url, location.protocol + '//' + location.host + '/');
+  };
+
+  var removeHash = function (url) {
+    return ensureString(url).replace(/#.*$/, '');
   };
 
   var prefetchUrl = function (url) {
@@ -95,6 +98,9 @@
    * Load a URL via GET request.
    */
   var loadUrl = d6._LOAD = function (url, callback) {
+    //+env:debug
+    log('Loading URL: "' + url + '"');
+    //-env:debug
 
     // Set all spinners in the page to their loading state.
     all('._SPINNER', function (spinner) {
@@ -115,7 +121,6 @@
     }
     // If the resource exists and isn't an array, render it.
     else {
-      resource.request.url = url;
       renderResponse(resource);
     }
   };
@@ -128,13 +133,13 @@
     // Indicate with a URL param that D6 is requesting data, so we'll get JSON.
     var d6Url = url + (contains(url, '?') ? '&' : '?') + 'd6=on';
 
-    // When data is received, execute all callbacks that have been waiting.
+    // When data is received, cache the response and execute callbacks.
     var onComplete = function (response) {
-      forEach(cache[url], function (callback) {
+      var queue = cache[url];
+      cache[url] = response;
+      forEach(queue, function (callback) {
         callback(response);
       });
-      // Once everything's been executed, remove the queue.
-      delete cache[url];
     };
 
     // Fire the JSON request.
@@ -144,20 +149,25 @@
   // Render a template with the given context, and display the resulting HTML.
   var renderResponse = function (context) {
     var err = context._ERROR;
-    var view = views[context.view];
+    var view = views[context._STATUS ? context.view : 'error0'];
+    var url = context.request.url.replace(/[&\?]d6=on/, '');
     var html;
+
+    //+env:debug
+    log('Rendering "' + url + '" response:', context);
+    //-env:debug
 
     // Reset any spinners.
     all('._SPINNER', function (spinner) {
       removeClass(spinner, '_LOADING');
     });
 
-    // If there's an error, render the error text.
-    if (err) {
+    // If we got bad JSON, try rendering it as HTML.
+    if (err == '_BAD_JSON') {
       html = context._TEXT;
-      //+env:dev
-        error(err + ': "' + html + '"');
-      //-env:dev
+      //+env:debug
+      error(err + ': "' + html + '"');
+      //-env:debug
       writeHtml(html);
     }
 
@@ -169,11 +179,16 @@
 
     // If we can't find a corresponding view, navigate the old-fashioned way.
     else {
-      //+env:dev
-        error('View not found: "' + context.view + '"');
-      //-env:dev
-      window.location = context.request.url;
+      //+env:debug
+      error('View not found: "' + context.view + '"');
+      //-env:debug
+
+      // TODO: Restore the hash from the request URL.
+      window.location = url;
     }
+
+    // If we render this page again, we'll want a fresh context.
+    delete cache[url];
   };
 
   var writeHtml = function (html) {
@@ -197,7 +212,7 @@
       e(js);
     });
     onReady();
-  }
+  };
 
   var cacheBust;
   var scripts = getElementsByTagName('script');
