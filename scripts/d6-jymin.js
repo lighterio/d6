@@ -40,7 +40,7 @@
       if (isSameDomain(url) && isLeftClick) {
         preventDefault(event);
         pushHistory(url);
-        loadUrl(url, renderResponse);
+        loadUrl(url);
       }
     });
 
@@ -60,7 +60,7 @@
 
     // When a user presses the back button, render the new URL.
     onHistoryPop(function (event) {
-      loadUrl(location, renderResponse);
+      loadUrl(location);
     });
 
     isReady = true;
@@ -77,15 +77,27 @@
   var prefetchUrl = function (url) {
     // Only proceed if it's not already prefetched.
     if (!cache[url]) {
+      //+env:debug
+      log('D6: Prefetching "' + url + '".');
+      //-env:debug
+
       // Create a callback queue to execute when data arrives.
       cache[url] = [function (response) {
+        //+env:debug
+        log('D6: Executing callbacks for prefetched URL "' + url + '".');
+        //-env:debug
+
         // Cache the response so data can be used without a queue.
         cache[url] = response;
+
         // Remove the data after 10 seconds, or the given TTL.
         var ttl = response.ttl || 1e4;
         setTimeout(function () {
           // Only delete if it's not a new callback queue.
           if (!isArray(cache[url])) {
+            //+env:debug
+            log('D6: Removing "' + url + '" from prefetch cache.');
+            //-env:debug
             delete cache[url];
           }
         }, ttl);
@@ -97,9 +109,12 @@
   /**
    * Load a URL via GET request.
    */
-  var loadUrl = d6._LOAD = function (url, callback) {
+  var loadUrl = d6._LOAD_URL = function (url) {
+    d6._LOADING_URL = url;
+    d6._LOADING_START = new Date();
+
     //+env:debug
-    log('Loading URL: "' + url + '"');
+    log('D6: Loading "' + url + '".');
     //-env:debug
 
     // Set all spinners in the page to their loading state.
@@ -112,15 +127,24 @@
 
     // If there's no resource, start the JSON request.
     if (!resource) {
-      cache[url] = [callback];
+      //+env:debug
+      log('D6: Creating callback queue for "' + url + '".');
+      //-env:debug
+      cache[url] = [renderResponse];
       getD6Json(url);
     }
     // If the "resource" is a callback queue, then pushing means listening.
     else if (isArray(resource)) {
-      push(resource, callback);
+      //+env:debug
+      log('D6: Queueing callback for "' + url + '".');
+      //-env:debug
+      push(resource, renderResponse);
     }
     // If the resource exists and isn't an array, render it.
     else {
+      //+env:debug
+      log('D6: Found precached response for "' + url + '".');
+      //-env:debug
       renderResponse(resource);
     }
   };
@@ -129,6 +153,9 @@
    * Request JSON, then execute any callbacks that have been waiting for it.
    */
   var getD6Json = function (url, data) {
+    //+env:debug
+    log('D6: Fetching response for "' + url + '".');
+    //-env:debug
 
     // Indicate with a URL param that D6 is requesting data, so we'll get JSON.
     var d6Url = url + (contains(url, '?') ? '&' : '?') + 'd6=on';
@@ -148,43 +175,48 @@
 
   // Render a template with the given context, and display the resulting HTML.
   var renderResponse = function (context) {
+    d6._CONTEXT = context;
     var err = context._ERROR;
-    var view = views[context._STATUS ? context.view : 'error0'];
+    var viewName = context._STATUS ? context.view : 'error0';
+    var view = d6._VIEW = views[viewName];
     var url = context.request.url.replace(/[&\?]d6=on/, '');
     var html;
 
-    //+env:debug
-    log('Rendering "' + url + '" response:', context);
-    //-env:debug
+    // Make sure the URL we render is the last one we tried to load
+    if (d6._LOADING_URL == url) {
 
-    // Reset any spinners.
-    all('._SPINNER', function (spinner) {
-      removeClass(spinner, '_LOADING');
-    });
+      // Reset any spinners.
+      all('._SPINNER', function (spinner) {
+        removeClass(spinner, '_LOADING');
+      });
 
-    // If we got bad JSON, try rendering it as HTML.
-    if (err == '_BAD_JSON') {
-      html = context._TEXT;
-      //+env:debug
-      error(err + ': "' + html + '"');
-      //-env:debug
-      writeHtml(html);
-    }
+      // If we got bad JSON, try rendering it as HTML.
+      if (err == '_BAD_JSON') {
+        html = context._TEXT;
+        //+env:debug
+        error('D6: Bad JSON. (' + err + '): "' + html + '"');
+        //-env:debug
+        writeHtml(html);
+      }
 
-    // If the context refers to a view that we have, render it.
-    else if (view) {
-      html = view.call(views, context);
-      writeHtml(html);
-    }
+      // If the context refers to a view that we have, render it.
+      else if (view) {
+        //+env:debug
+        log('D6: Rendering view "' + viewName + '".');
+        //-env:debug
+        html = view.call(views, context);
+        writeHtml(html);
+      }
 
-    // If we can't find a corresponding view, navigate the old-fashioned way.
-    else {
-      //+env:debug
-      error('View not found: "' + context.view + '"');
-      //-env:debug
+      // If we can't find a corresponding view, navigate the old-fashioned way.
+      else {
+        //+env:debug
+        error('D6: View "' + viewName + '" not found. Changing location.');
+        //-env:debug
 
-      // TODO: Restore the hash from the request URL.
-      window.location = url;
+        // TODO: Restore any existing hash from the request URL.
+        window.location = url;
+      }
     }
 
     // If we render this page again, we'll want a fresh context.
