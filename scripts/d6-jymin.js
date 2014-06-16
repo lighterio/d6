@@ -148,7 +148,7 @@
   };
 
   var removeD6Param = function (url) {
-    return url.replace(/[&\?]d6=[1r]/g, '');
+    return ensureString(url).replace(/[&\?]d6=[1r]/g, '');
   };
 
   var prefetchUrl = function (url) {

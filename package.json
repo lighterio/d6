@@ -4,7 +4,7 @@
   "keywords": [
     "d6"
   ],
-  "version": "0.0.7",
+  "version": "0.0.8",
   "main": "d6.js",
   "homepage": "http://lighter.io/d6",
   "repository": "http://github.com/zerious/d6.git",
