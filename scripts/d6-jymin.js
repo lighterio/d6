@@ -8,18 +8,18 @@
 (function () {
 
   /**
-   * The d6 function accepts new templates from /d6.js, etc.
+   * The D6 function accepts new templates from /d6.js, etc.
    */
-  var d6 = window.d6 = function (newViews) {
+  var D6 = window.D6 = function (newViews) {
     decorateObject(views, newViews);
     if (!isReady) {
       init();
     }
   };
 
-  var views = d6._VIEWS = {};
+  var views = D6._VIEWS = {};
 
-  var cache = d6._CACHE = {};
+  var cache = D6._CACHE = {};
 
   var isReady = false;
 
@@ -32,14 +32,13 @@
 
     body = document.body;
 
-    // When a same-domain link is clicked, fetch it via AJAX.
+    // When a same-domain link is clicked, fetch it via XMLHttpRequest.
     on(body, 'a', 'click', function (a, event) {
       var url = removeHash(a.href);
       var buttonNumber = event.which;
       var isLeftClick = (!buttonNumber || (buttonNumber == 1));
       if (isSameDomain(url) && isLeftClick) {
         preventDefault(event);
-        pushHistory(url);
         loadUrl(url);
       }
     });
@@ -53,6 +52,76 @@
         if (isDifferentPage && isSameDomain(url)) {
           prefetchUrl(url);
         }
+      }
+    });
+
+    // When a form field changes, timestamp the form.
+    var inputChanged = function (input) {
+      var form = input.form;
+      if (form) {
+        form._LAST_CHANGED = getTime();
+      }
+    };
+    on(body, 'input', 'change', inputChanged);
+    on(body, 'select', 'change', inputChanged);
+    on(body, 'textarea', 'change', inputChanged);
+
+    // When a form button is clicked, attach it to the form.
+    var buttonClicked = function (button) {
+      if (button.type == 'submit') {
+        var form = button.form;
+        if (form) {
+          if (form._CLICKED_BUTTON != button) {
+            form._CLICKED_BUTTON = button;
+            form._LAST_CHANGED = getTime();
+          }
+        }
+      }
+    };
+    on(body, 'input', 'click', buttonClicked);
+    on(body, 'button', 'click', buttonClicked);
+
+    // When a form is submitted, gather its data and submit via XMLHttpRequest.
+    on(body, 'form', 'submit', function (form, event) {
+      var url = removeHash(form.action);
+      var isGet = (lower(form.method) == 'get');
+      if (isSameDomain(url)) {
+        preventDefault(event);
+
+        // Get form data.
+        var data = [];
+        all(form, 'input,select,textarea,button', function (input) {
+          var name = input.name;
+          var type = input.type;
+          var value = getValue(input);
+          var ignore = !name;
+          ignore = ignore || ((type == 'radio') && !value);
+          ignore = ignore || ((type == 'submit') && (input != form._CLICKED_BUTTON));
+          if (!ignore) {
+            if (isString(value)) {
+              push(data, escape(name) + '=' + escape(value));
+            }
+            else {
+              forEach(value, function (val) {
+                push(data, escape(name) + '=' + escape(val));
+              });
+            }
+          }
+        });
+
+        // For a get request, append data to the URL.
+        if (isGet) {
+          url += (contains(url, '?') ? '&' : '?') + data.join('&');
+          data = 0;
+        }
+        // If posting, append a timestamp so we can repost with this base URL.
+        else {
+          url = appendD6Param(url, form._LAST_CHANGED);
+          data = data.join('&');
+        }
+
+        // Submit form data to the URL.
+        loadUrl(url, data);
       }
     });
 
@@ -74,17 +143,25 @@
     return ensureString(url).replace(/#.*$/, '');
   };
 
+  var appendD6Param = function (url, number) {
+    return url + (contains(url, '?') ? '&' : '?') + 'd6=' + (number || 1);
+  };
+
+  var removeD6Param = function (url) {
+    return url.replace(/[&\?]d6=[1r]/g, '');
+  };
+
   var prefetchUrl = function (url) {
     // Only proceed if it's not already prefetched.
     if (!cache[url]) {
       //+env:debug
-      log('D6: Prefetching "' + url + '".');
+      log('[D6] Prefetching "' + url + '".');
       //-env:debug
 
       // Create a callback queue to execute when data arrives.
       cache[url] = [function (response) {
         //+env:debug
-        log('D6: Executing callbacks for prefetched URL "' + url + '".');
+        log('[D6] Executing callbacks for prefetched URL "' + url + '".');
         //-env:debug
 
         // Cache the response so data can be used without a queue.
@@ -96,7 +173,7 @@
           // Only delete if it's not a new callback queue.
           if (!isArray(cache[url])) {
             //+env:debug
-            log('D6: Removing "' + url + '" from prefetch cache.');
+            log('[D6] Removing "' + url + '" from prefetch cache.');
             //-env:debug
             delete cache[url];
           }
@@ -109,12 +186,12 @@
   /**
    * Load a URL via GET request.
    */
-  var loadUrl = d6._LOAD_URL = function (url) {
-    d6._LOADING_URL = url;
-    d6._LOADING_START = new Date();
+  var loadUrl = D6._LOAD_URL = function (url, data) {
+    D6._LOADING_URL = removeD6Param(url);
+    D6._LOAD_STARTED = getTime();
 
     //+env:debug
-    log('D6: Loading "' + url + '".');
+    log('[D6] Loading "' + url + '".');
     //-env:debug
 
     // Set all spinners in the page to their loading state.
@@ -128,22 +205,22 @@
     // If there's no resource, start the JSON request.
     if (!resource) {
       //+env:debug
-      log('D6: Creating callback queue for "' + url + '".');
+      log('[D6] Creating callback queue for "' + url + '".');
       //-env:debug
       cache[url] = [renderResponse];
-      getD6Json(url);
+      getD6Json(url, data);
     }
     // If the "resource" is a callback queue, then pushing means listening.
     else if (isArray(resource)) {
       //+env:debug
-      log('D6: Queueing callback for "' + url + '".');
+      log('[D6] Queueing callback for "' + url + '".');
       //-env:debug
       push(resource, renderResponse);
     }
     // If the resource exists and isn't an array, render it.
     else {
       //+env:debug
-      log('D6: Found precached response for "' + url + '".');
+      log('[D6] Found precached response for "' + url + '".');
       //-env:debug
       renderResponse(resource);
     }
@@ -154,18 +231,21 @@
    */
   var getD6Json = function (url, data) {
     //+env:debug
-    log('D6: Fetching response for "' + url + '".');
+    log('[D6] Fetching response for "' + url + '".');
     //-env:debug
 
     // Indicate with a URL param that D6 is requesting data, so we'll get JSON.
-    var d6Url = url + (contains(url, '?') ? '&' : '?') + 'd6=on';
+    var d6Url = appendD6Param(url);
 
     // When data is received, cache the response and execute callbacks.
-    var onComplete = function (response) {
+    var onComplete = function (data) {
       var queue = cache[url];
-      cache[url] = response;
+      cache[url] = data;
+      //+env:debug
+      log('[D6] Running ' + queue.length + ' callback(s) for "' + url + '".');
+      //-env:debug
       forEach(queue, function (callback) {
-        callback(response);
+        callback(data);
       });
     };
 
@@ -175,54 +255,62 @@
 
   // Render a template with the given context, and display the resulting HTML.
   var renderResponse = function (context) {
-    d6._CONTEXT = context;
+    D6._CONTEXT = context;
     var err = context._ERROR;
-    var viewName = context._STATUS ? context.view : 'error0';
-    var view = d6._VIEW = views[viewName];
-    var url = context.request.url.replace(/[&\?]d6=on/, '');
+    var requestUrl = removeD6Param(context._REQUEST._URL);
+    var responseUrl = context.d6u || requestUrl;
+    var viewName = context.d6 || 'error0';
+    var view = D6._VIEW = views[viewName];
     var html;
 
-    // Make sure the URL we render is the last one we tried to load
-    if (d6._LOADING_URL == url) {
+    // Make sure the URL we render is the last one we tried to load.
+    if (requestUrl == D6._LOADING_URL) {
 
       // Reset any spinners.
       all('._SPINNER', function (spinner) {
         removeClass(spinner, '_LOADING');
       });
 
-      // If we got bad JSON, try rendering it as HTML.
-      if (err == '_BAD_JSON') {
-        html = context._TEXT;
+      // If we got a string, try rendering it as HTML.
+      if (isString(context) && trim(context)[0] == '<') {
+        html = context;
         //+env:debug
-        error('D6: Bad JSON. (' + err + '): "' + html + '"');
+        log('[D6] Rendering HTML string');
         //-env:debug
-        writeHtml(html);
       }
 
       // If the context refers to a view that we have, render it.
       else if (view) {
-        //+env:debug
-        log('D6: Rendering view "' + viewName + '".');
-        //-env:debug
         html = view.call(views, context);
-        writeHtml(html);
+        //+env:debug
+        log('[D6] Rendering view "' + viewName + '".');
+        //-env:debug
       }
 
       // If we can't find a corresponding view, navigate the old-fashioned way.
       else {
         //+env:debug
-        error('D6: View "' + viewName + '" not found. Changing location.');
+        error('[D6] View "' + viewName + '" not found. Changing location.');
         //-env:debug
-
-        // TODO: Restore any existing hash from the request URL.
-        window.location = url;
+        window.location = responseUrl;
       }
     }
 
-    // If we render this page again, we'll want a fresh context.
-    delete cache[url];
+    // If there's HTML to render, show it as a page.
+    if (html) {
+      writeHtml(html);
+
+      // Change the location bar to reflect where we are now.
+      pushHistory(responseUrl);
+
+      // If we render this page again, we'll want fresh data.
+      delete cache[requestUrl];
+    }
   };
 
+  /**
+   * Overwrite the page with new HTML, and execute embedded scripts.
+   */
   var writeHtml = function (html) {
     match(html, /<title.*?>([\s\S]+)<\/title>/, function (tag, title) {
       document.title = title;
@@ -239,13 +327,13 @@
       setHtml(body, html);
       body.scrollTop = 0;
     });
-    var e = window.eval;
-    scripts.forEach(function (js) {
-      e(js);
-    });
+    scripts.forEach(execute);
     onReady();
   };
 
+  /**
+   * Insert a script to load D6 templates, using the cachebust from "/a.js".
+   */
   var cacheBust;
   var scripts = getElementsByTagName('script');
   forEach(scripts, function (script) {

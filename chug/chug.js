@@ -11,6 +11,8 @@ require('figlet').text('D6 Client v' + exports.version, {font: 'Standard'}, func
     'node_modules/jymin/scripts/collections.js',
     'node_modules/jymin/scripts/dom.js',
     'node_modules/jymin/scripts/events.js',
+    'node_modules/jymin/scripts/forms.js',
+    'node_modules/jymin/scripts/history.js',
     'node_modules/jymin/scripts/logging.js',
     'node_modules/jymin/scripts/strings.js',
     'node_modules/jymin/scripts/types.js',
@@ -35,8 +37,7 @@ require('figlet').text('D6 Client v' + exports.version, {font: 'Standard'}, func
         " * Source files:\n" +
         locations.join("\n") + "\n" +
         " */\n\n\n" +
-        asset.getContent() + "\n" +
-        "window.getD6 = getD6;\n").replace(/[\t ]*\n/g, '\n'));
+        asset.getContent() + "\n").replace(/[\t ]*\n/g, '\n'));
     })
     .wrap('window')
     .minify()
