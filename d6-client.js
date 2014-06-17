@@ -1,9 +1,9 @@
 /**
- *  ____   __      ____ _ _            _            ___   ___  _____
- * |  _ \ / /_    / ___| (_) ___ _ __ | |_  __   __/ _ \ / _ \|___  |
- * | | | | '_ \  | |   | | |/ _ \ '_ \| __| \ \ / / | | | | | |  / /
- * | |_| | (_) | | |___| | |  __/ | | | |_   \ V /| |_| | |_| | / /
- * |____/ \___/   \____|_|_|\___|_| |_|\__|   \_/  \___(_)___(_)_/
+ *  ____   __      ____ _ _            _            ___   ___   ___
+ * |  _ \ / /_    / ___| (_) ___ _ __ | |_  __   __/ _ \ / _ \ / _ \
+ * | | | | '_ \  | |   | | |/ _ \ '_ \| __| \ \ / / | | | | | | (_) |
+ * | |_| | (_) | | |___| | |  __/ | | | |_   \ V /| |_| | |_| |\__, |
+ * |____/ \___/   \____|_|_|\___|_| |_|\__|   \_/  \___(_)___(_) /_/
  *
  *
  * http://lighter.io/d6
@@ -68,7 +68,6 @@ var getResponse = function (
         var data = parse(request.responseText);
         data._STATUS = status;
         data._REQUEST = request;
-        data = data || {_ERROR: '_OFFLINE'};
         callback(data);
       }
     };
@@ -241,7 +240,7 @@ var merge = function (
  * Push padding values onto an array up to a specified length.
  * @return number: The number of padding values that were added.
  */
-var pad = function (
+var padArray = function (
   array,       // Array:  The array to check for items.
   padToLength, // number: The minimum number of items in the array.
   paddingValue // mixed|: The value to use as padding.
@@ -1504,84 +1503,6 @@ var isDate = function (
 ) {
   return isInstance(value, Date);
 };
-
-/**
- * Create a not-strictly-JSON string.
- */
-var stringify = function (data, stack) {
-  var reserved = /^(break|case|catch|continue|debugger|default|delete|do|else|finally|for|function|if|in|instanceof|new|return|switch|this|throw|try|typeof|var|void|while|with)$/;
-  if (data === null) {
-    data = 'null';
-  }
-  else if (isFunction(data)) {
-    data = ensureString(data).replace(/^function \(/, 'function(');
-  }
-  else if (isDate(data)) {
-    data = 'new Date(' + getTime(data) + ')';
-  }
-  else if (isObject(data)) {
-    stack = stack || [];
-    var isCircular = false;
-    forEach(stack, function (item, index) {
-      if (item == data) {
-        isCircular = true;
-      }
-    });
-    if (isCircular) {
-      return null;
-    }
-    push(stack, data);
-    var parts = [];
-    if (isArray(data)) {
-      forEach(data, function (value) {
-        push(parts, stringify(value, stack));
-      });
-    }
-    else {
-      forIn(data, function (key, value) {
-        if (reserved.test(key)) {
-          key = '"' + key + '"';
-        }
-        push(parts, key + ':' + stringify(value, stack));
-      });
-    }
-    pop(stack);
-    data = '{' + parts.join(',') + '}';
-  }
-  else if (isString(data) && stack) {
-    data = '"' + data.replace(/"/g, '\\"') + '"';
-  }
-  else {
-    data = '' + data;
-  }
-  return data;
-};
-
-/**
- * Parse JavaScript.
- */
-var parse = function (text) {
-  if (text[0] == '{') {
-    try {
-      var evil = window.eval; // jshint ignore:line
-      evil('eval.J=' + text);
-      text = evil.J;
-    }
-    catch (e) {
-      //+env:debug
-      error('[Jymin] Could not parse JS: "' + text + '"');
-      //-env:debug
-    }
-  }
-  return text;
-};
-
-/**
- * Execute JavaScript.
- */
-var execute = function (text) {
-  parse('0;' + text);
-};
 /**
  * This file is used in conjunction with Jymin to form the D6 client.
  *
@@ -1732,7 +1653,7 @@ var execute = function (text) {
   };
 
   var removeD6Param = function (url) {
-    return ensureString(url).replace(/[&\?]d6=[1r]/g, '');
+    return ensureString(url).replace(/[&\?]d6=[r\d]+/g, '');
   };
 
   var prefetchUrl = function (url) {
@@ -1745,7 +1666,7 @@ var execute = function (text) {
       // Create a callback queue to execute when data arrives.
       cache[url] = [function (response) {
         //+env:debug
-        log('[D6] Executing callbacks for prefetched URL "' + url + '".');
+        log('[D6] Caching contents for prefetched URL "' + url + '".');
         //-env:debug
 
         // Cache the response so data can be used without a queue.
@@ -1806,7 +1727,7 @@ var execute = function (text) {
       //+env:debug
       log('[D6] Found precached response for "' + url + '".');
       //-env:debug
-      renderResponse(resource);
+      renderResponse(resource, url);
     }
   };
 
@@ -1829,7 +1750,7 @@ var execute = function (text) {
       log('[D6] Running ' + queue.length + ' callback(s) for "' + url + '".');
       //-env:debug
       forEach(queue, function (callback) {
-        callback(data);
+        callback(data, url);
       });
     };
 
@@ -1838,14 +1759,14 @@ var execute = function (text) {
   };
 
   // Render a template with the given context, and display the resulting HTML.
-  var renderResponse = function (context) {
+  var renderResponse = function (context, requestUrl) {
     D6._CONTEXT = context;
     var err = context._ERROR;
-    var requestUrl = removeD6Param(context._REQUEST._URL);
-    var responseUrl = context.d6u || requestUrl;
+    var responseUrl = removeD6Param(context.d6u || requestUrl);
     var viewName = context.d6 || 'error0';
     var view = D6._VIEW = views[viewName];
     var html;
+    requestUrl = removeD6Param(requestUrl);
 
     // Make sure the URL we render is the last one we tried to load.
     if (requestUrl == D6._LOADING_URL) {
@@ -1855,8 +1776,8 @@ var execute = function (text) {
         removeClass(spinner, '_LOADING');
       });
 
-      // If we got a string, try rendering it as HTML.
-      if (isString(context) && trim(context)[0] == '<') {
+      // If we received HTML, try rendering it.
+      if (trim(context)[0] == '<') {
         html = context;
         //+env:debug
         log('[D6] Rendering HTML string');

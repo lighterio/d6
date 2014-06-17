@@ -148,7 +148,7 @@
   };
 
   var removeD6Param = function (url) {
-    return ensureString(url).replace(/[&\?]d6=[1r]/g, '');
+    return ensureString(url).replace(/[&\?]d6=[r\d]+/g, '');
   };
 
   var prefetchUrl = function (url) {
@@ -161,7 +161,7 @@
       // Create a callback queue to execute when data arrives.
       cache[url] = [function (response) {
         //+env:debug
-        log('[D6] Executing callbacks for prefetched URL "' + url + '".');
+        log('[D6] Caching contents for prefetched URL "' + url + '".');
         //-env:debug
 
         // Cache the response so data can be used without a queue.
@@ -222,7 +222,7 @@
       //+env:debug
       log('[D6] Found precached response for "' + url + '".');
       //-env:debug
-      renderResponse(resource);
+      renderResponse(resource, url);
     }
   };
 
@@ -245,7 +245,7 @@
       log('[D6] Running ' + queue.length + ' callback(s) for "' + url + '".');
       //-env:debug
       forEach(queue, function (callback) {
-        callback(data);
+        callback(data, url);
       });
     };
 
@@ -254,14 +254,14 @@
   };
 
   // Render a template with the given context, and display the resulting HTML.
-  var renderResponse = function (context) {
+  var renderResponse = function (context, requestUrl) {
     D6._CONTEXT = context;
     var err = context._ERROR;
-    var requestUrl = removeD6Param(context._REQUEST._URL);
-    var responseUrl = context.d6u || requestUrl;
+    var responseUrl = removeD6Param(context.d6u || requestUrl);
     var viewName = context.d6 || 'error0';
     var view = D6._VIEW = views[viewName];
     var html;
+    requestUrl = removeD6Param(requestUrl);
 
     // Make sure the URL we render is the last one we tried to load.
     if (requestUrl == D6._LOADING_URL) {
@@ -271,8 +271,8 @@
         removeClass(spinner, '_LOADING');
       });
 
-      // If we got a string, try rendering it as HTML.
-      if (isString(context) && trim(context)[0] == '<') {
+      // If we received HTML, try rendering it.
+      if (trim(context)[0] == '<') {
         html = context;
         //+env:debug
         log('[D6] Rendering HTML string');
