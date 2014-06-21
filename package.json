@@ -4,7 +4,7 @@
   "keywords": [
     "d6"
   ],
-  "version": "0.0.9",
+  "version": "0.0.10",
   "main": "d6.js",
   "homepage": "http://lighter.io/d6",
   "repository": "http://github.com/zerious/d6.git",
@@ -27,7 +27,7 @@
     "coveralls": "istanbul cover _mocha --report lcovonly -- -R spec && cat ./coverage/lcov.info | coveralls && rm -rf ./coverage"
   },
   "dependencies": {
-    "jymin": "0.2.6"
+    "jymin": "0.2.8"
   },
   "devDependencies": {
     "zeriousify": "0.1.5",

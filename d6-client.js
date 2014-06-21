@@ -1,9 +1,9 @@
 /**
- *  ____   __      ____ _ _            _            ___   ___   ___
- * |  _ \ / /_    / ___| (_) ___ _ __ | |_  __   __/ _ \ / _ \ / _ \
- * | | | | '_ \  | |   | | |/ _ \ '_ \| __| \ \ / / | | | | | | (_) |
- * | |_| | (_) | | |___| | |  __/ | | | |_   \ V /| |_| | |_| |\__, |
- * |____/ \___/   \____|_|_|\___|_| |_|\__|   \_/  \___(_)___(_) /_/
+ *  ____   __      ____ _ _            _            ___   ___   _  ___
+ * |  _ \ / /_    / ___| (_) ___ _ __ | |_  __   __/ _ \ / _ \ / |/ _ \
+ * | | | | '_ \  | |   | | |/ _ \ '_ \| __| \ \ / / | | | | | || | | | |
+ * | |_| | (_) | | |___| | |  __/ | | | |_   \ V /| |_| | |_| || | |_| |
+ * |____/ \___/   \____|_|_|\___|_| |_|\__|   \_/  \___(_)___(_)_|\___/
  *
  *
  * http://lighter.io/d6
@@ -27,6 +27,8 @@
  * Empty handler.
  */
 var doNothing = function () {};
+
+// TODO: Enable multiple handlers using "bind" or perhaps middlewares.
 var responseSuccessHandler = doNothing;
 var responseFailureHandler = doNothing;
 
@@ -57,8 +59,13 @@ var getResponse = function (
   }
   var request = getXhr();
   if (request) {
+    onFailure = onFailure || responseFailureHandler;
+    onSuccess = onSuccess || responseSuccessHandler;
     request.onreadystatechange = function() {
       if (request.readyState == 4) {
+        //+env:debug
+        log('[Jymin] Received response from "' + url + '". (' + getResponse._WAITING + ' in progress).');
+        //-env:debug
         --getResponse._WAITING;
         var status = request.status;
         var isSuccess = (status == 200);
@@ -76,7 +83,6 @@ var getResponse = function (
     if (body) {
       request.setRequestHeader('content-type', 'application/x-www-form-urlencoded');
     }
-    getResponse._WAITING = (getResponse._WAITING || 0) + 1;
 
     // Record the original request URL.
     request._URL = url;
@@ -89,7 +95,14 @@ var getResponse = function (
     // Record the time the request was made.
     request._TIME = getTime();
 
+    // Allow applications to back off when too many requests are in progress.
+    getResponse._WAITING = (getResponse._WAITING || 0) + 1;
+
+    //+env:debug
+    log('[Jymin] Sending request to "' + url + '". (' + getResponse._WAITING + ' in progress).');
+    //-env:debug
     request.send(body || null);
+
   }
   return true;
 };
@@ -111,6 +124,23 @@ var forEach = function (
 };
 
 /**
+ * Iterate over an array, and call a callback with (index, value), as in jQuery.each
+ */
+var each = function (
+  array,   // Array:    The array to iterate over.
+  callback // Function: The function to call on each item. `callback(item, index, array)`
+) {
+  if (array) {
+    for (var index = 0, length = getLength(array); index < length; index++) {
+      var result = callback(index, array[index], array);
+      if (result === false) {
+        break;
+      }
+    }
+  }
+};
+
+/**
  * Iterate over an object's keys, and call a function on each key value pair.
  */
 var forIn = function (
@@ -120,6 +150,23 @@ var forIn = function (
   if (object) {
     for (var key in object) {
       var result = callback(key, object[key], object);
+      if (result === false) {
+        break;
+      }
+    }
+  }
+};
+
+/**
+ * Iterate over an object's keys, and call a function on each (value, key) pair.
+ */
+var forOf = function (
+  object,  // Object*:   The object to iterate over.
+  callback // Function*: The function to call on each pair. `callback(value, key, object)`
+) {
+  if (object) {
+    for (var key in object) {
+      var result = callback(object[key], key, object);
       if (result === false) {
         break;
       }
