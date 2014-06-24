@@ -23,29 +23,25 @@
 
   var isReady = false;
 
-  var body;
-
   /**
    * Initialization binds event handlers.
    */
   var init = function () {
 
-    body = document.body;
-
     // When a same-domain link is clicked, fetch it via XMLHttpRequest.
-    on(body, 'a', 'click', function (a, event) {
+    on('a', 'click', function (a, event) {
       var url = removeHash(a.href);
       var buttonNumber = event.which;
       var isLeftClick = (!buttonNumber || (buttonNumber == 1));
       if (isSameDomain(url) && isLeftClick) {
         preventDefault(event);
-        loadUrl(url);
+        loadUrl(url, 0, a);
       }
     });
 
     // When a same-domain link is hovered, prefetch it.
     // TODO: Use mouse movement to detect probably targets.
-    on(body, 'a', 'mouseover', function (a, event) {
+    on('a', 'mouseover', function (a, event) {
       if (!hasClass(a, '_NOPREFETCH')) {
         var url = removeHash(a.href);
         var isDifferentPage = (url != removeHash(location));
@@ -56,18 +52,15 @@
     });
 
     // When a form field changes, timestamp the form.
-    var inputChanged = function (input) {
+    on('input,select,textarea', 'change', function (input) {
       var form = input.form;
       if (form) {
         form._LAST_CHANGED = getTime();
       }
-    };
-    on(body, 'input', 'change', inputChanged);
-    on(body, 'select', 'change', inputChanged);
-    on(body, 'textarea', 'change', inputChanged);
+    });
 
     // When a form button is clicked, attach it to the form.
-    var buttonClicked = function (button) {
+    on('input,button', 'click', function (button) {
       if (button.type == 'submit') {
         var form = button.form;
         if (form) {
@@ -77,13 +70,11 @@
           }
         }
       }
-    };
-    on(body, 'input', 'click', buttonClicked);
-    on(body, 'button', 'click', buttonClicked);
+    });
 
     // When a form is submitted, gather its data and submit via XMLHttpRequest.
-    on(body, 'form', 'submit', function (form, event) {
-      var url = removeHash(form.action);
+    on('form', 'submit', function (form, event) {
+      var url = removeHash(form.action || location.href.replace(/\?.*$/, ''));
       var isGet = (lower(form.method) == 'get');
       if (isSameDomain(url)) {
         preventDefault(event);
@@ -121,7 +112,7 @@
         }
 
         // Submit form data to the URL.
-        loadUrl(url, data);
+        loadUrl(url, data, form);
       }
     });
 
@@ -186,9 +177,17 @@
   /**
    * Load a URL via GET request.
    */
-  var loadUrl = D6._LOAD_URL = function (url, data) {
+  var loadUrl = D6._LOAD_URL = function (url, data, sourceElement) {
     D6._LOADING_URL = removeD6Param(url);
     D6._LOAD_STARTED = getTime();
+
+    var targetSelector = getData(sourceElement, '_D6_TARGET');
+    var targetView = getData(sourceElement, '_D6_VIEW');
+    if (targetSelector) {
+      all(targetSelector, function (element) {
+        addClass(element, '_D6_TARGET');
+      });
+    }
 
     //+env:debug
     log('[D6] Loading "' + url + '".');
@@ -199,6 +198,10 @@
       addClass(spinner, '_LOADING');
     });
 
+    var handler = function (context, url) {
+      renderResponse(context, url, targetSelector, targetView);
+    };
+
     // A resource is either a cached response, a callback queue, or nothing.
     var resource = cache[url];
 
@@ -207,7 +210,7 @@
       //+env:debug
       log('[D6] Creating callback queue for "' + url + '".');
       //-env:debug
-      cache[url] = [renderResponse];
+      cache[url] = [handler];
       getD6Json(url, data);
     }
     // If the "resource" is a callback queue, then pushing means listening.
@@ -215,14 +218,14 @@
       //+env:debug
       log('[D6] Queueing callback for "' + url + '".');
       //-env:debug
-      push(resource, renderResponse);
+      push(resource, handler);
     }
     // If the resource exists and isn't an array, render it.
     else {
       //+env:debug
       log('[D6] Found precached response for "' + url + '".');
       //-env:debug
-      renderResponse(resource, url);
+      handler(resource, url);
     }
   };
 
@@ -254,11 +257,11 @@
   };
 
   // Render a template with the given context, and display the resulting HTML.
-  var renderResponse = function (context, requestUrl) {
+  var renderResponse = function (context, requestUrl, targetSelector, targetView) {
     D6._CONTEXT = context;
     var err = context._ERROR;
     var responseUrl = removeD6Param(context.d6u || requestUrl);
-    var viewName = context.d6 || 'error0';
+    var viewName = targetView || context.d6 || 'error0';
     var view = D6._VIEW = views[viewName];
     var html;
     requestUrl = removeD6Param(requestUrl);
@@ -267,7 +270,7 @@
     if (requestUrl == D6._LOADING_URL) {
 
       // Reset any spinners.
-      all('._SPINNER', function (spinner) {
+      all('._SPINNER,._D6_TARGET', function (spinner) {
         removeClass(spinner, '_LOADING');
       });
 
@@ -298,7 +301,7 @@
 
     // If there's HTML to render, show it as a page.
     if (html) {
-      writeHtml(html);
+      writeHtml(html, targetSelector);
 
       // Change the location bar to reflect where we are now.
       pushHistory(responseUrl);
@@ -311,7 +314,7 @@
   /**
    * Overwrite the page with new HTML, and execute embedded scripts.
    */
-  var writeHtml = function (html) {
+  var writeHtml = function (html, targetSelector) {
     match(html, /<title.*?>([\s\S]+)<\/title>/, function (tag, title) {
       document.title = title;
     });
@@ -323,12 +326,25 @@
       }
       return tag;
     });
-    match(html, /<body.*?>([\s\S]+)<\/body>/, function (tag, html) {
-      setHtml(body, html);
-      body.scrollTop = 0;
-    });
-    scripts.forEach(execute);
-    onReady();
+    // If we're just replacing the HTML of a target element, do so.
+    if (targetSelector) {
+      all(targetSelector, function (element) {
+        setHtml(element, html);
+      });
+      forEach(scripts, execute);
+      all(targetSelector, function (element) {
+        onReady(element);
+      });
+    }
+    // Otherwise, grab the body content, and mimic a page transition.
+    else {
+      match(html, /<body.*?>([\s\S]+)<\/body>/, function (tag, html) {
+        setHtml(body, html);
+        body.scrollTop = 0;
+      });
+      forEach(scripts, execute);
+      onReady(document);
+    }
   };
 
   /**
@@ -342,6 +358,7 @@
       cacheBust = pair[1];
     }
   });
+
   insertScript('/d6.js?' + cacheBust);
 
 })();
