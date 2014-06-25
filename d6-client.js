@@ -1,9 +1,9 @@
 /**
- *  ____   __      ____ _ _            _            ___   _   ___
- * |  _ \ / /_    / ___| (_) ___ _ __ | |_  __   __/ _ \ / | / _ \
- * | | | | '_ \  | |   | | |/ _ \ '_ \| __| \ \ / / | | || || | | |
- * | |_| | (_) | | |___| | |  __/ | | | |_   \ V /| |_| || || |_| |
- * |____/ \___/   \____|_|_|\___|_| |_|\__|   \_/  \___(_)_(_)___/
+ *  ____   __      ____ _ _            _            ___   _   _
+ * |  _ \ / /_    / ___| (_) ___ _ __ | |_  __   __/ _ \ / | / |
+ * | | | | '_ \  | |   | | |/ _ \ '_ \| __| \ \ / / | | || | | |
+ * | |_| | (_) | | |___| | |  __/ | | | |_   \ V /| |_| || |_| |
+ * |____/ \___/   \____|_|_|\___|_| |_|\__|   \_/  \___(_)_(_)_|
  *
  *
  * http://lighter.io/d6
@@ -318,7 +318,6 @@ var getElement = function (
     id = parentElement;
     parentElement = document;
   }
-  // If the argument is not a string, just assume it's already an element reference, and return it.
   return isString(id) ? parentElement.getElementById(id) : id;
 };
 
@@ -631,6 +630,57 @@ var setText = function (
 };
 
 /**
+ * Get an attribute from a DOM element, if it can be found.
+ */
+var getAttribute = function (
+  element,
+  attributeName
+) {
+  // Ensure that we have an element, not just an ID.
+  element = getElement(element);
+  if (element) {
+    return element.getAttribute(attributeName);
+  }
+};
+
+/**
+ * Set an attribute on a DOM element, if it can be found.
+ */
+var setAttribute = function (
+  element,
+  attributeName,
+  value
+) {
+  // Ensure that we have an element, not just an ID.
+  element = getElement(element);
+  if (element) {
+    // Set the element's innerText.
+    element.setAttribute(attributeName, value);
+  }
+};
+
+/**
+ * Get a data attribute from a DOM element.
+ */
+var getData = function (
+  element,
+  dataKey
+) {
+  return getAttribute(element, 'data-' + dataKey);
+};
+
+/**
+ * Set a data attribute on a DOM element.
+ */
+var setData = function (
+  element,
+  dataKey,
+  value
+) {
+  setAttribute(element, 'data-' + dataKey, value);
+};
+
+/**
  * Get a DOM element's class name if the element can be found.
  */
 var getClass = function (
@@ -825,8 +875,18 @@ var all = function (
     });
   }
   else if (selector[0] == '#') {
-    var element = getElement(parentElement, selector.substr(1));
-    elements = element ? [element] : [];
+    var id = selector.substr(1);
+    var child = getElement(parentElement.ownerDocument || document, id);
+    if (child) {
+      var parent = getParent(child);
+      while (parent) {
+        if (parent === parentElement) {
+          elements = [child];
+          break;
+        }
+        parent = getParent(parent);
+      }
+    }
   }
   else {
     elements = getElementsByTagAndClass(parentElement, selector);
@@ -834,7 +894,7 @@ var all = function (
   if (callback) {
     forEach(elements, callback);
   }
-  return elements;
+  return elements || [];
 };
 
 /**
@@ -847,21 +907,28 @@ var one = function (
 ) {
   return all(parentElement, selector, callback)[0];
 };
+var CLICK = 'click';
+var MOUSEDOWN = 'mousedown';
+var MOUSEUP = 'mouseup';
+var KEYDOWN = 'keydown';
+var KEYUP = 'keyup';
+var KEYPRESS = 'keypress';
+
 /**
  * Bind a handler to listen for a particular event on an element.
  */
 var bind = function (
   element,            // DOMElement|string: Element or ID of element to bind to.
-  eventName,          // string:            Name of event (e.g. "click", "mouseover", "keyup").
+  eventName,          // string|Array:      Name of event (e.g. "click", "mouseover", "keyup").
   eventHandler,       // function:          Function to run when the event is triggered. `eventHandler(element, event, target, customData)`
-  customData,         // object|:           Custom data to pass through to the event handler when it's triggered.
-  multiBindCustomData
+  customData          // object|:           Custom data to pass through to the event handler when it's triggered.
 ) {
   // Allow multiple events to be bound at once using a space-delimited string.
-  if (contains(eventName, ' ')) {
-    var eventNames = splitBySpaces(eventName);
+  var isEventArray = isArray(eventNames);
+  if (isEventArray || contains(eventName, ' ')) {
+    var eventNames = isEventArray ? eventName : splitBySpaces(eventName);
     forEach(eventNames, function (singleEventName) {
-      bind(element, singleEventName, eventHandler, customData, multiBindCustomData);
+      bind(element, singleEventName, eventHandler, customData);
     });
     return;
   }
@@ -888,7 +955,10 @@ var bind = function (
           }
         }
       }
-      return eventHandler(element, event, target, multiBindCustomData || customData);
+      var result = eventHandler(element, event, target, customData);
+      if (result === false) {
+        preventDefault(event);
+      }
     };
 
     // Bind using whatever method we can use.
@@ -909,6 +979,63 @@ var bind = function (
 };
 
 /**
+ * Bind an event handler on an element that delegates to specified child elements.
+ */
+var on = function (
+  element,
+  selector, // Supports "tag.class,tag.class" but does not support nesting.
+  eventName,
+  eventHandler,
+  customData
+) {
+  if (isFunction(selector)) {
+    customData = eventName;
+    eventHandler = selector;
+    eventName = element;
+    selector = '';
+    element = document;
+  }
+  else if (isFunction(eventName)) {
+    customData = eventHandler;
+    eventHandler = eventName;
+    eventName = selector;
+    selector = element;
+    element = document;
+  }
+  var parts = selector.split(',');
+  var onHandler = function(element, event, target, customData) {
+    forEach(parts, function (part) {
+      var found = false;
+      if ((part[0] == '#') && part == target.id) {
+        found = true;
+      }
+      else {
+        var tagAndClass = part.split('.');
+        var tagName = tagAndClass[0].toUpperCase();
+        var className = tagAndClass[1];
+        if (!tagName || (target.tagName == tagName)) {
+          if (!className || hasClass(target, className)) {
+            found = true;
+          }
+        }
+      }
+      if (found) {
+        var result = eventHandler(target, event, element, customData);
+        if (result === false) {
+          preventDefault(event);
+        }
+      }
+    });
+    // Bubble up to find a selector match because we didn't find one this time.
+    target = getParent(target);
+    if (target) {
+      onHandler(element, event, target, customData);
+    }
+  };
+  bind(element, eventName, onHandler, customData);
+};
+
+/**
  * Trigger an element event.
  */
 var trigger = function (
@@ -921,13 +1048,17 @@ var trigger = function (
     event = {type: event};
   }
   if (!target) {
+    customData = target;
     target = element;
   }
+  customData = customData || {};
+  customData._TRIGGERED = true;
+
   var handlers = element._HANDLERS;
   if (handlers) {
     var queue = handlers[event.type];
-    forEach(queue, function (callback) {
-      callback(element, event, target, customData);
+    forEach(queue, function (handler) {
+      handler(element, event, target, customData);
     });
   }
   if (!event.cancelBubble) {
@@ -944,10 +1075,17 @@ var trigger = function (
 var stopPropagation = function (
   event // object: Event to be canceled.
 ) {
-  event.cancelBubble = true;
-  if (event.stopPropagation) {
-    event.stopPropagation();
+  if (event) {
+    event.cancelBubble = true;
+    if (event.stopPropagation) {
+      event.stopPropagation();
+    }
   }
+  //+env:debug
+  else {
+    error('[Jymin] Called stopPropagation on a non-event.', event);
+  }
+  //-env:debug
 };
 
 /**
@@ -956,7 +1094,16 @@ var stopPropagation = function (
 var preventDefault = function (
   event // object: Event to prevent from doing its default action.
 ) {
-  event.preventDefault();
+  if (event) {
+    if (event.preventDefault) {
+      event.preventDefault();
+    }
+  }
+  //+env:debug
+  else {
+    error('[Jymin] Called preventDefault on a non-event.', event);
+  }
+  //-env:debug
 };
 
 /**
@@ -984,35 +1131,6 @@ var bindHover = function (
   var HOVER_OUT = 'mouse' + (ieVersion ? 'leave' : 'out');
   bind(element, HOVER_OVER, eventHandler, true, customData);
   bind(element, HOVER_OUT, eventHandler, false, customData);
-};
-
-/**
- * Bind an event handler on an element that delegates to specified child elements.
- */
-var on = function (
-  element,
-  tagAndClass,
-  eventName,
-  eventHandler,
-  customData,
-  multiBindCustomData
-) {
-  tagAndClass = tagAndClass.split('.');
-  var tagName = tagAndClass[0].toUpperCase();
-  var className = tagAndClass[1];
-  var onHandler = function(element, event, target, customData) {
-    if (!tagName || (target.tagName == tagName)) {
-      if (!className || hasClass(target, className)) {
-        return eventHandler(target, event, element, multiBindCustomData || customData);
-      }
-    }
-    // Bubble up to find a tagAndClass match because we didn't find one this time.
-    target = getParent(target);
-    if (target) {
-      onHandler(element, event, target, customData);
-    }
-  };
-  bind(element, eventName, onHandler, customData);
 };
 
 /**
@@ -1083,8 +1201,13 @@ var focusElement = function (
     element = getElement(element);
     if (element) {
       var focusMethod = element.focus;
-      if (focusMethod) {
+      if (isFunction(focusMethod)) {
         focusMethod.call(element);
+      }
+      else {
+        //+env:debug
+        error('[Jymin] Element does not exist, or has no focus method', element);
+        //-env:debug
       }
     }
   };
@@ -1227,7 +1350,7 @@ var getHistory = function () {
 /**
  * Push an item into the history.
  */
-var pushHistory = function (
+var historyPush = function (
   href
 ) {
   getHistory().push(href);
@@ -1236,7 +1359,7 @@ var pushHistory = function (
 /**
  * Replace the current item in the history.
  */
-var replaceHistory = function (
+var historyReplace = function (
   href
 ) {
   getHistory().replace(href);
@@ -1245,7 +1368,7 @@ var replaceHistory = function (
 /**
  * Go back.
  */
-var popHistory = function (
+var historyPop = function (
   href
 ) {
   getHistory().back();
