@@ -1686,6 +1686,10 @@ var isDate = function (
     return ensureString(url).replace(/#.*$/, '');
   };
 
+  var removeQuery = function (url) {
+    return ensureString(url).replace(/\?.*$/, '');
+  };
+
   var appendD6Param = function (url, number) {
     return url + (contains(url, '?') ? '&' : '?') + 'd6=' + (number || 1);
   };
@@ -1856,7 +1860,9 @@ var isDate = function (
       writeHtml(html, targetSelector);
 
       // Change the location bar to reflect where we are now.
-      pushHistory(responseUrl);
+      var isSamePage = removeQuery(responseUrl) == removeQuery(location.href);
+      var historyMethod = isSamePage ? historyReplace : historyPush;
+      historyMethod(responseUrl);
 
       // If we render this page again, we'll want fresh data.
       delete cache[requestUrl];
