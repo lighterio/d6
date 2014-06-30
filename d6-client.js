@@ -1,9 +1,9 @@
 /**
- *  ____   __      ____ _ _            _            ___   _   _
- * |  _ \ / /_    / ___| (_) ___ _ __ | |_  __   __/ _ \ / | / |
- * | | | | '_ \  | |   | | |/ _ \ '_ \| __| \ \ / / | | || | | |
- * | |_| | (_) | | |___| | |  __/ | | | |_   \ V /| |_| || |_| |
- * |____/ \___/   \____|_|_|\___|_| |_|\__|   \_/  \___(_)_(_)_|
+ *  ____   __      ____ _ _            _            ___   _   ____
+ * |  _ \ / /_    / ___| (_) ___ _ __ | |_  __   __/ _ \ / | |___ \
+ * | | | | '_ \  | |   | | |/ _ \ '_ \| __| \ \ / / | | || |   __) |
+ * | |_| | (_) | | |___| | |  __/ | | | |_   \ V /| |_| || |_ / __/
+ * |____/ \___/   \____|_|_|\___|_| |_|\__|   \_/  \___(_)_(_)_____|
  *
  *
  * http://lighter.io/d6
@@ -1706,11 +1706,13 @@ var isDate = function (
     // When a same-domain link is clicked, fetch it via XMLHttpRequest.
     on('a', 'click', function (a, event) {
       var url = removeHash(a.href);
-      var buttonNumber = event.which;
-      var isLeftClick = (!buttonNumber || (buttonNumber == 1));
-      if (isSameDomain(url) && isLeftClick) {
-        preventDefault(event);
-        loadUrl(url, 0, a);
+      if (url) {
+        var buttonNumber = event.which;
+        var isLeftClick = (!buttonNumber || (buttonNumber == 1));
+        if (isSameDomain(url) && isLeftClick) {
+          preventDefault(event);
+          loadUrl(url, 0, a);
+        }
       }
     });
 
@@ -1996,6 +1998,7 @@ var isDate = function (
    * Overwrite the page with new HTML, and execute embedded scripts.
    */
   var writeHtml = function (html, targetSelector) {
+    var body = document.body;
     match(html, /<title.*?>([\s\S]+)<\/title>/, function (tag, title) {
       document.title = title;
     });
