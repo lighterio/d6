@@ -21,6 +21,10 @@
 
   var cache = D6._CACHE = {};
 
+  var render = D6._RENDER = function (viewName, context) {
+    return views[viewName].call(views, context || D6._CONTEXT);
+  };
+
   var isReady = false;
 
   /**
@@ -77,9 +81,15 @@
     // When a form is submitted, gather its data and submit via XMLHttpRequest.
     on('form', 'submit', function (form, event) {
       var url = removeHash(form.action || location.href.replace(/\?.*$/, ''));
+      var enc = getAttribute(form, 'enctype');
       var isGet = (lower(form.method) == 'get');
-      if (isSameDomain(url)) {
+      if (isSameDomain(url) && !/multipart/.test(enc)) {
         preventDefault(event);
+
+        var isValid = form._VALIDATE ? form._VALIDATE() : true;
+        if (!isValid) {
+          return;
+        }
 
         // Get form data.
         var data = [];

@@ -1,9 +1,9 @@
 /**
- *  ____   __      ____ _ _            _            ___   _   ____
- * |  _ \ / /_    / ___| (_) ___ _ __ | |_  __   __/ _ \ / | |___ \
- * | | | | '_ \  | |   | | |/ _ \ '_ \| __| \ \ / / | | || |   __) |
- * | |_| | (_) | | |___| | |  __/ | | | |_   \ V /| |_| || |_ / __/
- * |____/ \___/   \____|_|_|\___|_| |_|\__|   \_/  \___(_)_(_)_____|
+ *  ____   __      ____ _ _            _            ___   _   _____
+ * |  _ \ / /_    / ___| (_) ___ _ __ | |_  __   __/ _ \ / | |___ /
+ * | | | | '_ \  | |   | | |/ _ \ '_ \| __| \ \ / / | | || |   |_ \
+ * | |_| | (_) | | |___| | |  __/ | | | |_   \ V /| |_| || |_ ___) |
+ * |____/ \___/   \____|_|_|\___|_| |_|\__|   \_/  \___(_)_(_)____/
  *
  *
  * http://lighter.io/d6
@@ -1696,6 +1696,10 @@ var isDate = function (
 
   var cache = D6._CACHE = {};
 
+  var render = D6._RENDER = function (viewName, context) {
+    return views[viewName].call(views, context || D6._CONTEXT);
+  };
+
   var isReady = false;
 
   /**
@@ -1752,9 +1756,15 @@ var isDate = function (
     // When a form is submitted, gather its data and submit via XMLHttpRequest.
     on('form', 'submit', function (form, event) {
       var url = removeHash(form.action || location.href.replace(/\?.*$/, ''));
+      var enc = getAttribute(form, 'enctype');
       var isGet = (lower(form.method) == 'get');
-      if (isSameDomain(url)) {
+      if (isSameDomain(url) && !/multipart/.test(enc)) {
         preventDefault(event);
+
+        var isValid = form._VALIDATE ? form._VALIDATE() : true;
+        if (!isValid) {
+          return;
+        }
 
         // Get form data.
         var data = [];
