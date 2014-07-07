@@ -367,17 +367,17 @@
   };
 
   /**
-   * Insert a script to load D6 templates, using the cachebust from "/a.js".
+   * Insert a script to load D6 templates.
    */
-  var cacheBust;
-  var scripts = getElementsByTagName('script');
-  forEach(scripts, function (script) {
-    var pair = ensureString(script.src).split('?');
-    if (hasMany(pair)) {
-      cacheBust = pair[1];
+  var cacheBust = '';
+  one('link,script', function (element) {
+    var delimiter = '?v=';
+    var pair = ensureString(element.src || element.href).split(delimiter);
+    if (pair[1]) {
+      cacheBust = delimiter + pair[1];
     }
   });
 
-  insertScript('/d6.js?' + cacheBust);
+  insertScript('/d6.js' + cacheBust);
 
 })();

@@ -1,9 +1,9 @@
 /**
- *  ____   __      ____ _ _            _            ___   _   _____
- * |  _ \ / /_    / ___| (_) ___ _ __ | |_  __   __/ _ \ / | |___ /
- * | | | | '_ \  | |   | | |/ _ \ '_ \| __| \ \ / / | | || |   |_ \
- * | |_| | (_) | | |___| | |  __/ | | | |_   \ V /| |_| || |_ ___) |
- * |____/ \___/   \____|_|_|\___|_| |_|\__|   \_/  \___(_)_(_)____/
+ *  ____   __      ____ _ _            _            ___   _  _  _
+ * |  _ \ / /_    / ___| (_) ___ _ __ | |_  __   __/ _ \ / || || |
+ * | | | | '_ \  | |   | | |/ _ \ '_ \| __| \ \ / / | | || || || |_
+ * | |_| | (_) | | |___| | |  __/ | | | |_   \ V /| |_| || ||__   _|
+ * |____/ \___/   \____|_|_|\___|_| |_|\__|   \_/  \___(_)_(_) |_|
  *
  *
  * http://lighter.io/d6
@@ -2042,18 +2042,18 @@ var isDate = function (
   };
 
   /**
-   * Insert a script to load D6 templates, using the cachebust from "/a.js".
+   * Insert a script to load D6 templates.
    */
-  var cacheBust;
-  var scripts = getElementsByTagName('script');
-  forEach(scripts, function (script) {
-    var pair = ensureString(script.src).split('?');
-    if (hasMany(pair)) {
-      cacheBust = pair[1];
+  var cacheBust = '';
+  one('link,script', function (element) {
+    var delimiter = '?v=';
+    var pair = ensureString(element.src || element.href).split(delimiter);
+    if (pair[1]) {
+      cacheBust = delimiter + pair[1];
     }
   });
 
-  insertScript('/d6.js?' + cacheBust);
+  insertScript('/d6.js' + cacheBust);
 
 })();
 
