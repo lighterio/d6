@@ -7,9 +7,9 @@
   "version": "0.1.4",
   "main": "d6.js",
   "homepage": "http://lighter.io/d6",
-  "repository": "http://github.com/zerious/d6.git",
+  "repository": "http://github.com/lighterio/d6.git",
   "bugs": {
-    "url": "http://github.com/zerious/d6/issues"
+    "url": "http://github.com/lighterio/d6/issues"
   },
   "author": "Sam Eubank <sameubank@gmail.com>",
   "contributors": [
@@ -20,27 +20,26 @@
   ],
   "scripts": {
     "build": "node chug/chug",
-    "test": "mocha",
-    "retest": "mocha --watch",
-    "cover": "istanbul cover _mocha",
+    "test": "./node_modules/exam/exam.js",
+    "retest": "./node_modules/exam/exam.js --watch",
+    "cover": "istanbul cover ./node_modules/exam/exam.js",
     "report": "open coverage/lcov-report/index.html",
-    "coveralls": "istanbul cover _mocha --report lcovonly -- -R spec && cat ./coverage/lcov.info | coveralls && rm -rf ./coverage"
+    "coveralls": "istanbul cover ./node_modules/exam/exam.js --report lcovonly -- -R spec && cat ./coverage/lcov.info | coveralls && rm -rf ./coverage"
   },
   "dependencies": {
     "jymin": "0.3.0"
   },
   "devDependencies": {
-    "zeriousify": "0.1.5",
-    "mocha": "1.20.1",
+    "zeriousify": "0.1.9",
+    "exam": "0.0.5",
     "istanbul": "0.2.11",
-    "assert-plus": "0.1.5",
     "coveralls": "2.10.1",
     "figlet": "1.0.9"
   },
   "licenses": [
     {
       "type": "MIT",
-      "url": "http://github.com/zerious/d6/blob/master/MIT-LICENSE.md"
+      "url": "http://github.com/lighterio/d6/blob/master/MIT-LICENSE.md"
     }
   ]
 }

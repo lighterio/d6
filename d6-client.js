@@ -10,16 +10,16 @@
  * MIT License
  *
  * Source files:
- *   https://github.com/zerious/jymin/blob/master/scripts/ajax.js
- *   https://github.com/zerious/jymin/blob/master/scripts/collections.js
- *   https://github.com/zerious/jymin/blob/master/scripts/dom.js
- *   https://github.com/zerious/jymin/blob/master/scripts/events.js
- *   https://github.com/zerious/jymin/blob/master/scripts/forms.js
- *   https://github.com/zerious/jymin/blob/master/scripts/history.js
- *   https://github.com/zerious/jymin/blob/master/scripts/logging.js
- *   https://github.com/zerious/jymin/blob/master/scripts/strings.js
- *   https://github.com/zerious/jymin/blob/master/scripts/types.js
- *   https://github.com/zerious/lighter/blob/master/node_modules/d6/scripts/d6-jymin.js
+ *   https://github.com/lighterio/jymin/blob/master/scripts/ajax.js
+ *   https://github.com/lighterio/jymin/blob/master/scripts/collections.js
+ *   https://github.com/lighterio/jymin/blob/master/scripts/dom.js
+ *   https://github.com/lighterio/jymin/blob/master/scripts/events.js
+ *   https://github.com/lighterio/jymin/blob/master/scripts/forms.js
+ *   https://github.com/lighterio/jymin/blob/master/scripts/history.js
+ *   https://github.com/lighterio/jymin/blob/master/scripts/logging.js
+ *   https://github.com/lighterio/jymin/blob/master/scripts/strings.js
+ *   https://github.com/lighterio/jymin/blob/master/scripts/types.js
+ *   https://github.com/lighterio/lighter/blob/master/node_modules/d6/scripts/d6-jymin.js
  */
 
 

@@ -25,7 +25,7 @@ require('figlet').text('D6 Client v' + exports.version, {font: 'Standard'}, func
       locations.forEach(function (location, index) {
         locations[index] = location.replace(
           /^.*\/(node_modules|[Ww]ork[Ss]?p?a?c?e?)\/([a-z]+)\/(.*?)$/,
-          ' *   https://github.com/zerious/$2/blob/master/$3');
+          ' *   https://github.com/lighterio/$2/blob/master/$3');
       });
       asset.setContent((
         "/**\n" +
