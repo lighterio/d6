@@ -2037,7 +2037,6 @@ var isDate = function (
         body.scrollTop = 0;
       });
       forEach(scripts, execute);
-      onReady(document);
     }
   };
 
