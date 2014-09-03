@@ -19,7 +19,7 @@
  *   https://github.com/lighterio/jymin/blob/master/scripts/logging.js
  *   https://github.com/lighterio/jymin/blob/master/scripts/strings.js
  *   https://github.com/lighterio/jymin/blob/master/scripts/types.js
-/Users/sam/Workspace/d6/scripts/d6-jymin.js
+ *   https://github.com/lighterio/d6/blob/master/scripts/d6-jymin.js
  */
 
 
@@ -2075,4 +2075,3 @@ var isDate = function (
   insertScript('/d6.js' + cacheBust);
 
 })();
-
