@@ -1,6 +1,7 @@
 var cwd = process.cwd();
+var pkg = require('../package.json');
 
-exports.version = require('../package.json').version;
+exports.version = pkg.version;
 
 require('figlet').text('D6 Client v' + exports.version, {font: 'Standard'}, function (err, figlet) {
 
