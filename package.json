@@ -27,14 +27,14 @@
     "coveralls": "istanbul cover ./node_modules/exam/exam.js --report lcovonly -- -R spec && cat ./coverage/lcov.info | coveralls && rm -rf ./coverage"
   },
   "dependencies": {
-    "jymin": "0.3.0"
+    "jymin": "0.3.2"
   },
   "devDependencies": {
     "zeriousify": "0.1.9",
-    "exam": "0.0.5",
-    "istanbul": "0.2.11",
-    "coveralls": "2.10.1",
-    "figlet": "1.0.9"
+    "exam": "0.0.7",
+    "istanbul": "0.3.0",
+    "coveralls": "2.11.1",
+    "figlet": "1.1.0"
   },
   "licenses": [
     {

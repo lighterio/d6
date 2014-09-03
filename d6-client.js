@@ -19,7 +19,7 @@
  *   https://github.com/lighterio/jymin/blob/master/scripts/logging.js
  *   https://github.com/lighterio/jymin/blob/master/scripts/strings.js
  *   https://github.com/lighterio/jymin/blob/master/scripts/types.js
- *   https://github.com/lighterio/lighter/blob/master/node_modules/d6/scripts/d6-jymin.js
+/Users/sam/Workspace/d6/scripts/d6-jymin.js
  */
 
 
@@ -39,6 +39,14 @@ var getXhr = function () {
   var Xhr = window.XMLHttpRequest;
   var ActiveX = window.ActiveXObject;
   return Xhr ? new Xhr() : (ActiveX ? new ActiveX('Microsoft.XMLHTTP') : false);
+};
+
+/**
+ * Get an XHR upload object.
+ */
+var getUpload = function () {
+  var xhr = getXhr();
+  return xhr ? xhr.upload : false;
 };
 
 /**
@@ -221,7 +229,7 @@ var getLength = function (
 var getFirst = function (
   array // Array: The array to get the
 ) {
-  return isInstance(array) ? array[0] : undefined;
+  return isArray(array) ? array[0] : undefined;
 };
 
 /**
@@ -1006,7 +1014,7 @@ var on = function (
   var onHandler = function(element, event, target, customData) {
     forEach(parts, function (part) {
       var found = false;
-      if ((part[0] == '#') && part == target.id) {
+      if ('#' + target.id == part) {
         found = true;
       }
       else {
@@ -1051,8 +1059,7 @@ var trigger = function (
     customData = target;
     target = element;
   }
-  customData = customData || {};
-  customData._TRIGGERED = true;
+  event._TRIGGERED = true;
 
   var handlers = element._HANDLERS;
   if (handlers) {
@@ -1263,6 +1270,13 @@ var removeTimeout = function (
   addTimeout(elementOrString, false);
 };
 /**
+ * Get the type of a form element.
+ */
+var getType = function (input) {
+  return ensureString(input.type)[0];
+};
+
+/**
  * Get the value of a form element.
  */
 var getValue = function (
@@ -1270,7 +1284,7 @@ var getValue = function (
 ) {
   input = getElement(input);
   if (input) {
-    var type = input.type[0];
+    var type = getType(input);
     var value = input.value;
     var checked = input.checked;
     var options = input.options;
@@ -1286,7 +1300,7 @@ var getValue = function (
       });
     }
     else if (options) {
-      value = options[input.selectedIndex].value;
+      value = getValue(options[input.selectedIndex]);
     }
     return value;
   }
@@ -1301,7 +1315,7 @@ var setValue = function (
 ) {
   input = getElement(input);
   if (input) {
-    var type = input.type[0];
+    var type = getType(input);
     var options = input.options;
     if (type == 'c' || type == 'r') {
       input.checked = value ? true : false;
