@@ -7,11 +7,11 @@
 
 (function () {
 
-  // If the browser doesn't work with D6, dont start D6
-   if (!history.pushState) {
-   window.D6 = {};
-   return;
-   }
+  // If the browser doesn't work with D6, dont start D6.
+  if (!history.pushState) {
+    window.D6 = {};
+    return;
+  }
 
   /**
    * The D6 function accepts new templates from /d6.js, etc.
@@ -368,6 +368,7 @@
         body.scrollTop = 0;
       });
       forEach(scripts, execute);
+      onReady(body);
     }
   };
 

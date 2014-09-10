@@ -1,9 +1,9 @@
 /**
- *  ____   __      ____ _ _            _            ___   _   __
- * |  _ \ / /_    / ___| (_) ___ _ __ | |_  __   __/ _ \ / | / /_
- * | | | | '_ \  | |   | | |/ _ \ '_ \| __| \ \ / / | | || || '_ \
- * | |_| | (_) | | |___| | |  __/ | | | |_   \ V /| |_| || || (_) |
- * |____/ \___/   \____|_|_|\___|_| |_|\__|   \_/  \___(_)_(_)___/
+ *  ____   __      ____ _ _            _            ___   _  _____
+ * |  _ \ / /_    / ___| (_) ___ _ __ | |_  __   __/ _ \ / ||___  |
+ * | | | | '_ \  | |   | | |/ _ \ '_ \| __| \ \ / / | | || |   / /
+ * | |_| | (_) | | |___| | |  __/ | | | |_   \ V /| |_| || |_ / /
+ * |____/ \___/   \____|_|_|\___|_| |_|\__|   \_/  \___(_)_(_)_/
  *
  *
  * http://lighter.io/d6
@@ -618,7 +618,7 @@ var getText = function (
   // Ensure that we have an element, not just an ID.
   element = getElement(element);
   if (element) {
-    return element.innerText;
+    return element.textContent || element.innerText;
   }
 };
 
@@ -1696,11 +1696,11 @@ var isDate = function (
 
 (function () {
 
-  // If the browser doesn't work with D6, dont start D6
-   if (!history.pushState) {
-   window.D6 = {};
-   return;
-   }
+  // If the browser doesn't work with D6, dont start D6.
+  if (!history.pushState) {
+    window.D6 = {};
+    return;
+  }
 
   /**
    * The D6 function accepts new templates from /d6.js, etc.
@@ -2057,6 +2057,7 @@ var isDate = function (
         body.scrollTop = 0;
       });
       forEach(scripts, execute);
+      onReady(body);
     }
   };
 

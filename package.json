@@ -4,7 +4,7 @@
   "keywords": [
     "d6"
   ],
-  "version": "0.1.6",
+  "version": "0.1.7",
   "main": "d6.js",
   "homepage": "http://lighter.io/d6",
   "repository": "http://github.com/lighterio/d6.git",
@@ -27,11 +27,11 @@
     "coveralls": "istanbul cover ./node_modules/exam/exam.js --report lcovonly -- -R spec && cat ./coverage/lcov.info | coveralls && rm -rf ./coverage"
   },
   "dependencies": {
-    "jymin": "0.3.4"
+    "jymin": "^0.3.5"
   },
   "devDependencies": {
-    "zeriousify": "0.1.9",
-    "exam": "0.0.7",
+    "zeriousify": "^0.1.9",
+    "exam": "^0.0.7",
     "istanbul": "0.3.0",
     "coveralls": "2.11.1",
     "figlet": "1.1.0"
