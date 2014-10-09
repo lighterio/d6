@@ -48,6 +48,10 @@ var d6 = module.exports = function (app) {
 };
 
 /**
- * Expose the version to module users.
+ * Expose the D6 version via package.json lazy loading.
  */
-d6.version = require('./package.json').version;
+Object.defineProperty(d6, 'version', {
+  get: function () {
+    return require('./package.json').version;
+  }
+});

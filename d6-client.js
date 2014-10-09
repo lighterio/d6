@@ -1729,6 +1729,7 @@ var isDate = function (
 
     // When a same-domain link is clicked, fetch it via XMLHttpRequest.
     on('a', 'click', function (a, event) {
+      log(a.href);
       var url = removeHash(a.href);
       if (url) {
         var buttonNumber = event.which;

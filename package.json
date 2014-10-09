@@ -1,45 +1,37 @@
 {
   "name": "d6",
-  "description": "An isomorphic JavaScript library for conditional tier rendering",
-  "keywords": [
-    "d6"
-  ],
   "version": "0.1.7",
-  "main": "d6.js",
-  "homepage": "http://lighter.io/d6",
-  "repository": "http://github.com/lighterio/d6.git",
-  "bugs": {
-    "url": "http://github.com/lighterio/d6/issues"
-  },
-  "author": "Sam Eubank <sameubank@gmail.com>",
-  "contributors": [
-    "Sam Eubank <sameubank@gmail.com>"
-  ],
-  "engines": [
-    "node >= 0.2.6"
-  ],
-  "scripts": {
-    "build": "node chug/chug",
-    "test": "./node_modules/exam/exam.js",
-    "retest": "./node_modules/exam/exam.js --watch",
-    "cover": "istanbul cover ./node_modules/exam/exam.js",
-    "report": "open coverage/lcov-report/index.html",
-    "coveralls": "istanbul cover ./node_modules/exam/exam.js --report lcovonly -- -R spec && cat ./coverage/lcov.info | coveralls && rm -rf ./coverage"
-  },
+  "description": "An isomorphic JavaScript library for conditional tier rendering",
   "dependencies": {
     "jymin": "^0.3.5"
   },
   "devDependencies": {
-    "zeriousify": "^0.1.9",
-    "exam": "^0.0.7",
+    "zeriousify": "^0.1.10",
+    "exam": "^0.0.8",
     "istanbul": "0.3.0",
     "coveralls": "2.11.1",
     "figlet": "1.1.0"
   },
-  "licenses": [
-    {
-      "type": "MIT",
-      "url": "http://github.com/lighterio/d6/blob/master/MIT-LICENSE.md"
-    }
-  ]
+  "keywords": [
+    "d6"
+  ],
+  "main": "d6.js",
+  "engines": {
+    "node": ">=0.2.6"
+  },
+  "scripts": {
+    "build": "node chug/chug",
+    "test": "./node_modules/exam/exam.js",
+    "cover": "istanbul cover ./node_modules/exam/exam.js",
+    "report": "open coverage/lcov-report/index.html",
+    "coveralls": "istanbul cover ./node_modules/exam/exam.js --report lcovonly -- -R spec && cat ./coverage/lcov.info | coveralls && rm -rf ./coverage"
+  },
+  "repository": "https://github.com/lighterio/d6.git",
+  "bugs": "https://github.com/lighterio/d6/issues",
+  "homepage": "http://lighter.io/d6",
+  "author": "Sam Eubank <sameubank@gmail.com>",
+  "contributors": [
+    "Sam Eubank <sameubank@gmail.com>"
+  ],
+  "license": "MIT"
 }
