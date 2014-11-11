@@ -52,6 +52,6 @@ var d6 = module.exports = function (app) {
  */
 Object.defineProperty(d6, 'version', {
   get: function () {
-    return require('./package.json').version;
+    return require(__dirname + '/package.json').version;
   }
 });

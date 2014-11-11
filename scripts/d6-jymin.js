@@ -399,15 +399,16 @@
   /**
    * Insert a script to load D6 templates.
    */
-  var cacheBust = '';
-  one('link,script', function (element) {
-    var delimiter = '?v=';
-    var pair = ensureString(element.src || element.href).split(delimiter);
-    if (pair[1]) {
-      cacheBust = delimiter + pair[1];
-    }
-  });
-
-  insertScript('/d6.js' + cacheBust);
+  setTimeout(function () {
+    var cacheBust = '';
+    one('link,script', function (element) {
+      var delimiter = '?v=';
+      var pair = ensureString(element.src || element.href).split(delimiter);
+      if (pair[1]) {
+        cacheBust = delimiter + pair[1];
+      }
+    });
+    insertScript('/d6.js' + cacheBust);
+  }, 1);
 
 })();

@@ -1,26 +1,29 @@
 {
   "name": "d6",
-  "version": "0.1.7",
-  "description": "An isomorphic JavaScript library for conditional tier rendering",
-  "dependencies": {
-    "jymin": "^0.3.5"
-  },
+  "version": "0.1.8",
+  "description": "An isomorphic JavaScript transport for conditional tier rendering",
+  "dependencies": {},
   "devDependencies": {
-    "zeriousify": "^0.1.10",
-    "exam": "^0.0.8",
-    "istanbul": "0.3.0",
+    "chug": "^0.2.1",
+    "jymin": "^0.3.5",
     "coveralls": "2.11.1",
-    "figlet": "1.1.0"
+    "exam": "^0.1.5",
+    "figlet": "1.1.0",
+    "istanbul": "0.3.0",
+    "zeriousify": "^0.1.10"
   },
   "keywords": [
-    "d6"
+    "d6",
+    "isomorphic",
+    "ajax",
+    "transport"
   ],
   "main": "d6.js",
   "engines": {
     "node": ">=0.2.6"
   },
   "scripts": {
-    "build": "node chug/chug",
+    "build": "node .chug.js",
     "test": "./node_modules/exam/exam.js",
     "cover": "istanbul cover ./node_modules/exam/exam.js",
     "report": "open coverage/lcov-report/index.html",
