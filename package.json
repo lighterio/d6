@@ -4,13 +4,13 @@
   "description": "An isomorphic JavaScript transport for conditional tier rendering",
   "dependencies": {},
   "devDependencies": {
-    "chug": "^0.2.1",
-    "jymin": "^0.3.5",
+    "chug": "^0.2.2",
+    "jymin": "^0.4.0",
     "coveralls": "2.11.1",
-    "exam": "^0.1.5",
+    "exam": "^0.1.6",
     "figlet": "1.1.0",
     "istanbul": "0.3.0",
-    "zeriousify": "^0.1.10"
+    "zeriousify": "^0.1.12"
   },
   "keywords": [
     "d6",
