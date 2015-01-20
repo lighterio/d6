@@ -1,9 +1,9 @@
 /**
- *  ____   __      ____ _ _            _            ___   _   ___
- * |  _ \ / /_    / ___| (_) ___ _ __ | |_  __   __/ _ \ / | ( _ )
- * | | | | '_ \  | |   | | |/ _ \ '_ \| __| \ \ / / | | || | / _ \
- * | |_| | (_) | | |___| | |  __/ | | | |_   \ V /| |_| || || (_) |
- * |____/ \___/   \____|_|_|\___|_| |_|\__|   \_/  \___(_)_(_)___/
+ *  ____   __      ____ _ _            _            ___   ____    ___
+ * |  _ \ / /_    / ___| (_) ___ _ __ | |_  __   __/ _ \ |___ \  / _ \
+ * | | | | '_ \  | |   | | |/ _ \ '_ \| __| \ \ / / | | |  __) || | | |
+ * | |_| | (_) | | |___| | |  __/ | | | |_   \ V /| |_| | / __/ | |_| |
+ * |____/ \___/   \____|_|_|\___|_| |_|\__|   \_/  \___(_)_____(_)___/
  *
  *
  * http://lighter.io/d6
@@ -81,7 +81,7 @@ var getResponse = function (
         var callback = isSuccess ?
           onSuccess || responseSuccessHandler :
           onFailure || responseFailureHandler;
-        var data = parse(request.responseText);
+        var data = parse(request.responseText) || {};
         data._STATUS = status;
         data._REQUEST = request;
         callback(data);
@@ -1447,7 +1447,8 @@ var ensureProperty = function (
     value = object[property] = defaultValue;
   }
   return value;
-};/**
+};
+/**
  * Ensure a value is a string.
  */
 var ensureString = function (
