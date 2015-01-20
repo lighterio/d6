@@ -7,8 +7,6 @@
 [![Support](https://img.shields.io/gratipay/Lighter.io.svg)](https://gratipay.com/Lighter.io/)
 
 
-## TL;DR
-
 D6 is an isomorphic JavaScript renderer. If you use Lighter with Ltl, D6 can
 render your templates on the server side for the first request then lazy load
 templates and render on the client for subsequent requests.

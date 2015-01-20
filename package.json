@@ -1,13 +1,13 @@
 {
   "name": "d6",
-  "version": "0.1.8",
+  "version": "0.2.0",
   "description": "An isomorphic JavaScript transport for conditional tier rendering",
   "dependencies": {},
   "devDependencies": {
-    "chug": "^0.2.2",
+    "chug": "^0.3.0",
     "jymin": "^0.4.0",
     "coveralls": "2.11.1",
-    "exam": "^0.1.6",
+    "exam": "^0.2.1",
     "figlet": "1.1.0",
     "istanbul": "0.3.0",
     "zeriousify": "^0.1.12"

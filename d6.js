@@ -40,7 +40,9 @@ var d6 = module.exports = function (app) {
             response.end(code);
           }
         });
-        app.logger.info('[D6] Views routed to "' + url + '".');
+        var colorUrl = url.cyan || url;
+        var logInfo = (app.logger || console).info;
+        logInfo('[D6] Views routed to ' + colorUrl + '.');
       });
     });
 
