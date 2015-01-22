@@ -1,9 +1,9 @@
 /**
- *  ____   __      ____ _ _            _            ___   _  _____
- * |  _ \ / /_    / ___| (_) ___ _ __ | |_  __   __/ _ \ / ||___  |
- * | | | | '_ \  | |   | | |/ _ \ '_ \| __| \ \ / / | | || |   / /
- * | |_| | (_) | | |___| | |  __/ | | | |_   \ V /| |_| || |_ / /
- * |____/ \___/   \____|_|_|\___|_| |_|\__|   \_/  \___(_)_(_)_/
+ *  ____   __      ____ _ _            _            ___   ____    ___
+ * |  _ \ / /_    / ___| (_) ___ _ __ | |_  __   __/ _ \ |___ \  / _ \
+ * | | | | '_ \  | |   | | |/ _ \ '_ \| __| \ \ / / | | |  __) || | | |
+ * | |_| | (_) | | |___| | |  __/ | | | |_   \ V /| |_| | / __/ | |_| |
+ * |____/ \___/   \____|_|_|\___|_| |_|\__|   \_/  \___(_)_____(_)___/
  *
  *
  * http://lighter.io/d6
@@ -11,12 +11,13 @@
  *
  * Source files:
  *   https://github.com/lighterio/jymin/blob/master/scripts/ajax.js
- *   https://github.com/lighterio/jymin/blob/master/scripts/collections.js
+ *   https://github.com/lighterio/jymin/blob/master/scripts/arrays.js
  *   https://github.com/lighterio/jymin/blob/master/scripts/dom.js
  *   https://github.com/lighterio/jymin/blob/master/scripts/events.js
  *   https://github.com/lighterio/jymin/blob/master/scripts/forms.js
  *   https://github.com/lighterio/jymin/blob/master/scripts/history.js
  *   https://github.com/lighterio/jymin/blob/master/scripts/logging.js
+ *   https://github.com/lighterio/jymin/blob/master/scripts/objects.js
  *   https://github.com/lighterio/jymin/blob/master/scripts/strings.js
  *   https://github.com/lighterio/jymin/blob/master/scripts/types.js
  *   https://github.com/lighterio/d6/blob/master/scripts/d6-jymin.js
@@ -80,7 +81,7 @@ var getResponse = function (
         var callback = isSuccess ?
           onSuccess || responseSuccessHandler :
           onFailure || responseFailureHandler;
-        var data = parse(request.responseText);
+        var data = parse(request.responseText) || {};
         data._STATUS = status;
         data._REQUEST = request;
         callback(data);
@@ -146,70 +147,6 @@ var each = function (
       }
     }
   }
-};
-
-/**
- * Iterate over an object's keys, and call a function on each key value pair.
- */
-var forIn = function (
-  object,  // Object*:   The object to iterate over.
-  callback // Function*: The function to call on each pair. `callback(value, key, object)`
-) {
-  if (object) {
-    for (var key in object) {
-      var result = callback(key, object[key], object);
-      if (result === false) {
-        break;
-      }
-    }
-  }
-};
-
-/**
- * Iterate over an object's keys, and call a function on each (value, key) pair.
- */
-var forOf = function (
-  object,  // Object*:   The object to iterate over.
-  callback // Function*: The function to call on each pair. `callback(value, key, object)`
-) {
-  if (object) {
-    for (var key in object) {
-      var result = callback(object[key], key, object);
-      if (result === false) {
-        break;
-      }
-    }
-  }
-};
-
-/**
- * Decorate an object with properties from another object. If the properties
- */
-var decorateObject = function (
-  object,     // Object: The object to decorate.
-  decorations // Object: The object to iterate over.
-) {
-    if (object && decorations) {
-    forIn(decorations, function (key, value) {
-      object[key] = value;
-    });
-    }
-    return object;
-};
-
-/**
- * Ensure that a property exists by creating it if it doesn't.
- */
-var ensureProperty = function (
-  object,
-  property,
-  defaultValue
-) {
-  var value = object[property];
-  if (!value) {
-    value = object[property] = defaultValue;
-  }
-  return value;
 };
 
 /**
@@ -400,9 +337,16 @@ var getParent = function (
 /**
  * Create a DOM element.
  */
-var createElement = function (
-  tagIdentifier
-) {
+var createTag = function (tagName) {
+  var isSvg = /^(svg|g|path|circle|line)$/.test(tagName);
+  var uri = 'http://www.w3.org/' + (isSvg ? '2000/svg' : '1999/xhtml');
+  return document.createElementNS(uri, tagName);
+};
+
+/**
+ * Create a DOM element.
+ */
+var createElement = function (tagIdentifier) {
   if (!isString(tagIdentifier)) {
     return tagIdentifier;
   }
@@ -414,7 +358,7 @@ var createElement = function (
   var tagName = tagAndId[0] || 'div';
   var id = tagAndId[1];
   var attributes = tagAndAttributes[1];
-  var cachedElement = createElement[tagName] || (createElement[tagName] = document.createElement(tagName));
+  var cachedElement = createTag[tagName] || (createTag[tagName] = createTag(tagName));
   var element = cachedElement.cloneNode(true);
   if (id) {
     element.id = id;
@@ -697,7 +641,8 @@ var getClass = function (
   // Ensure that we have an element, not just an ID.
   element = getElement(element);
   if (element) {
-    return element.className;
+    var className = element.className || '';
+    return className.baseVal || className;
   }
 };
 
@@ -774,7 +719,7 @@ var addClass = function (
   className
 ) {
   element = getElement(element);
-  if (element) {
+  if (element && !hasClass(element, className)) {
     element.className += ' ' + className;
   }
 };
@@ -1441,6 +1386,69 @@ var ifConsole = function (method, args) {
   }
 };
 /**
+ * Iterate over an object's keys, and call a function on each key value pair.
+ */
+var forIn = function (
+  object,  // Object*:   The object to iterate over.
+  callback // Function*: The function to call on each pair. `callback(value, key, object)`
+) {
+  if (object) {
+    for (var key in object) {
+      var result = callback(key, object[key], object);
+      if (result === false) {
+        break;
+      }
+    }
+  }
+};
+
+/**
+ * Iterate over an object's keys, and call a function on each (value, key) pair.
+ */
+var forOf = function (
+  object,  // Object*:   The object to iterate over.
+  callback // Function*: The function to call on each pair. `callback(value, key, object)`
+) {
+  if (object) {
+    for (var key in object) {
+      var result = callback(object[key], key, object);
+      if (result === false) {
+        break;
+      }
+    }
+  }
+};
+
+/**
+ * Decorate an object with properties from another object. If the properties
+ */
+var decorateObject = function (
+  object,     // Object: The object to decorate.
+  decorations // Object: The object to iterate over.
+) {
+  if (object && decorations) {
+    forIn(decorations, function (key, value) {
+      object[key] = value;
+    });
+  }
+  return object;
+};
+
+/**
+ * Ensure that a property exists by creating it if it doesn't.
+ */
+var ensureProperty = function (
+  object,
+  property,
+  defaultValue
+) {
+  var value = object[property];
+  if (!value) {
+    value = object[property] = defaultValue;
+  }
+  return value;
+};
+/**
  * Ensure a value is a string.
  */
 var ensureString = function (
@@ -1702,6 +1710,8 @@ var isDate = function (
     return;
   }
 
+  var body = document.body;
+
   /**
    * The D6 function accepts new templates from /d6.js, etc.
    */
@@ -1729,11 +1739,30 @@ var isDate = function (
 
     // When a same-domain link is clicked, fetch it via XMLHttpRequest.
     on('a', 'click', function (a, event) {
+      var href = getAttribute(a, 'href');
       var url = removeHash(a.href);
-      if (url) {
-        var buttonNumber = event.which;
-        var isLeftClick = (!buttonNumber || (buttonNumber == 1));
-        if (isSameDomain(url) && isLeftClick) {
+      var buttonNumber = event.which;
+      var isLeftClick = (!buttonNumber || (buttonNumber == 1));
+      if (isLeftClick) {
+        if (startsWith(href, '#')) {
+          var offset = 0;
+          var element;
+          var name = href.substr(1);
+          all('a', function (anchor) {
+            if (anchor.name == name) {
+              element = anchor;
+            };
+          });
+          while (element) {
+            offset += element.offsetTop || 0;
+            element = element.offsetParent || 0;
+          }
+          yScroll(offset - (body._OFFSET_TOP || 0));
+          historyReplace(url + href);
+          preventDefault(event);
+          stopPropagation(event);
+        }
+        else if (url && isSameDomain(url)) {
           preventDefault(event);
           loadUrl(url, 0, a);
         }
@@ -1851,6 +1880,10 @@ var isDate = function (
 
   var removeD6Param = function (url) {
     return ensureString(url).replace(/[&\?]d6=[r\d]+/g, '');
+  };
+
+  var yScroll = function (y) {
+    body.scrollTop = document.documentElement.scrollTop = y;
   };
 
   var prefetchUrl = function (url) {
@@ -2028,7 +2061,6 @@ var isDate = function (
    * Overwrite the page with new HTML, and execute embedded scripts.
    */
   var writeHtml = function (html, targetSelector) {
-    var body = document.body;
     match(html, /<title.*?>([\s\S]+)<\/title>/, function (tag, title) {
       document.title = title;
     });
@@ -2054,7 +2086,7 @@ var isDate = function (
     else {
       match(html, /<body.*?>([\s\S]+)<\/body>/, function (tag, html) {
         setHtml(body, html);
-        body.scrollTop = 0;
+        yScroll(0);
       });
       forEach(scripts, execute);
       onReady(body);
@@ -2064,15 +2096,17 @@ var isDate = function (
   /**
    * Insert a script to load D6 templates.
    */
-  var cacheBust = '';
-  one('link,script', function (element) {
-    var delimiter = '?v=';
-    var pair = ensureString(element.src || element.href).split(delimiter);
-    if (pair[1]) {
-      cacheBust = delimiter + pair[1];
-    }
-  });
-
-  insertScript('/d6.js' + cacheBust);
+  setTimeout(function () {
+    var cacheBust = '';
+    one('link,script', function (element) {
+      var delimiter = '?v=';
+      var pair = ensureString(element.src || element.href).split(delimiter);
+      if (pair[1]) {
+        cacheBust = delimiter + pair[1];
+      }
+    });
+    insertScript('/d6.js' + cacheBust);
+  }, 1);
 
 })();
+

@@ -40,7 +40,9 @@ var d6 = module.exports = function (app) {
             response.end(code);
           }
         });
-        app.logger.info('[D6] Views routed to "' + url + '".');
+        var colorUrl = url.cyan || url;
+        var logInfo = (app.logger || console).info;
+        logInfo('[D6] Views routed to ' + colorUrl + '.');
       });
     });
 
@@ -48,6 +50,10 @@ var d6 = module.exports = function (app) {
 };
 
 /**
- * Expose the version to module users.
+ * Expose the D6 version via package.json lazy loading.
  */
-d6.version = require('./package.json').version;
+Object.defineProperty(d6, 'version', {
+  get: function () {
+    return require(__dirname + '/package.json').version;
+  }
+});

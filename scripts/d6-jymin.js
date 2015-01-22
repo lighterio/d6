@@ -13,6 +13,8 @@
     return;
   }
 
+  var body = document.body;
+
   /**
    * The D6 function accepts new templates from /d6.js, etc.
    */
@@ -40,11 +42,30 @@
 
     // When a same-domain link is clicked, fetch it via XMLHttpRequest.
     on('a', 'click', function (a, event) {
+      var href = getAttribute(a, 'href');
       var url = removeHash(a.href);
-      if (url) {
-        var buttonNumber = event.which;
-        var isLeftClick = (!buttonNumber || (buttonNumber == 1));
-        if (isSameDomain(url) && isLeftClick) {
+      var buttonNumber = event.which;
+      var isLeftClick = (!buttonNumber || (buttonNumber == 1));
+      if (isLeftClick) {
+        if (startsWith(href, '#')) {
+          var offset = 0;
+          var element;
+          var name = href.substr(1);
+          all('a', function (anchor) {
+            if (anchor.name == name) {
+              element = anchor;
+            };
+          });
+          while (element) {
+            offset += element.offsetTop || 0;
+            element = element.offsetParent || 0;
+          }
+          yScroll(offset - (body._OFFSET_TOP || 0));
+          historyReplace(url + href);
+          preventDefault(event);
+          stopPropagation(event);
+        }
+        else if (url && isSameDomain(url)) {
           preventDefault(event);
           loadUrl(url, 0, a);
         }
@@ -162,6 +183,10 @@
 
   var removeD6Param = function (url) {
     return ensureString(url).replace(/[&\?]d6=[r\d]+/g, '');
+  };
+
+  var yScroll = function (y) {
+    body.scrollTop = document.documentElement.scrollTop = y;
   };
 
   var prefetchUrl = function (url) {
@@ -339,7 +364,6 @@
    * Overwrite the page with new HTML, and execute embedded scripts.
    */
   var writeHtml = function (html, targetSelector) {
-    var body = document.body;
     match(html, /<title.*?>([\s\S]+)<\/title>/, function (tag, title) {
       document.title = title;
     });
@@ -365,7 +389,7 @@
     else {
       match(html, /<body.*?>([\s\S]+)<\/body>/, function (tag, html) {
         setHtml(body, html);
-        body.scrollTop = 0;
+        yScroll(0);
       });
       forEach(scripts, execute);
       onReady(body);
@@ -375,15 +399,16 @@
   /**
    * Insert a script to load D6 templates.
    */
-  var cacheBust = '';
-  one('link,script', function (element) {
-    var delimiter = '?v=';
-    var pair = ensureString(element.src || element.href).split(delimiter);
-    if (pair[1]) {
-      cacheBust = delimiter + pair[1];
-    }
-  });
-
-  insertScript('/d6.js' + cacheBust);
+  setTimeout(function () {
+    var cacheBust = '';
+    one('link,script', function (element) {
+      var delimiter = '?v=';
+      var pair = ensureString(element.src || element.href).split(delimiter);
+      if (pair[1]) {
+        cacheBust = delimiter + pair[1];
+      }
+    });
+    insertScript('/d6.js' + cacheBust);
+  }, 1);
 
 })();
